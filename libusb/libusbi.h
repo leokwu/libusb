@@ -728,6 +728,11 @@ struct usbi_os_backend {
 	 */
 	int (*open)(struct libusb_device_handle *dev_handle);
 
+	//add by leok
+	#ifdef ANDROID_APK
+	int (*open_fd)(struct libusb_device_handle *dev_handle, int fd);
+	#endif
+
 	/* Close a device such that the handle cannot be used again. Your backend
 	 * should destroy any resources that were allocated in the open path.
 	 * This may also be a good place to call usbi_remove_pollfd() to inform

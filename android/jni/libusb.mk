@@ -22,6 +22,7 @@ LIBUSB_ROOT_ABS:= $(LOCAL_PATH)/../..
 
 # libusb
 
+
 include $(CLEAR_VARS)
 
 LIBUSB_ROOT_REL:= ../..
@@ -47,8 +48,10 @@ LOCAL_C_INCLUDES += \
 LOCAL_EXPORT_C_INCLUDES := \
   $(LIBUSB_ROOT_ABS)/libusb
 
-LOCAL_LDLIBS := -llog
-
+LOCAL_LDLIBS := -llog 
+LOCAL_CFLAGS += -DANDROID_APK
+#LOCAL_STATIC_LIBRARIES += liblog
 LOCAL_MODULE := libusb1.0
 
 include $(BUILD_SHARED_LIBRARY)
+#include $(BUILD_STATIC_LIBRARY)

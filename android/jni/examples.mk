@@ -34,6 +34,8 @@ LOCAL_SHARED_LIBRARIES += libusb1.0
 
 LOCAL_MODULE:= listdevs
 
+LOCAL_CFLAGS += -pie -fPIE 
+LOCAL_LDFLAGS += -pie -fPIE -llog
 include $(BUILD_EXECUTABLE)
 
 # xusb

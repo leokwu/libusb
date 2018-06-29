@@ -1392,6 +1392,54 @@ static int op_open(struct libusb_device_handle *handle)
 	return r;
 }
 
+
+//add by leok
+#ifdef ANDROID_APK
+
+static int op_open_fd(struct libusb_device_handle *handle, int fd)
+{
+	struct linux_device_handle_priv *hpriv = _device_handle_priv(handle);
+	int r;
+
+	//hpriv->fd = _get_usbfs_fd(handle->dev, O_RDWR, 0);
+	hpriv->fd = fd;
+	if (hpriv->fd < 0) {
+		if (hpriv->fd == LIBUSB_ERROR_NO_DEVICE) {
+			/* device will still be marked as attached if hotplug monitor thread
+			 * hasn't processed remove event yet */
+			usbi_mutex_static_lock(&linux_hotplug_lock);
+			if (handle->dev->attached) {
+				usbi_dbg("open failed with no device, but device still attached");
+				linux_device_disconnected(handle->dev->bus_number,
+						handle->dev->device_address);
+			}
+			usbi_mutex_static_unlock(&linux_hotplug_lock);
+		}
+		return hpriv->fd;
+	}
+
+	r = ioctl(hpriv->fd, IOCTL_USBFS_GET_CAPABILITIES, &hpriv->caps);
+	if (r < 0) {
+		if (errno == ENOTTY)
+			usbi_dbg("getcap not available");
+		else
+			usbi_err(HANDLE_CTX(handle), "getcap failed (%d)", errno);
+		hpriv->caps = 0;
+		if (supports_flag_zero_packet)
+			hpriv->caps |= USBFS_CAP_ZERO_PACKET;
+		if (supports_flag_bulk_continuation)
+			hpriv->caps |= USBFS_CAP_BULK_CONTINUATION;
+	}
+
+	r = usbi_add_pollfd(HANDLE_CTX(handle), hpriv->fd, POLLOUT);
+	if (r < 0)
+		close(hpriv->fd);
+
+	return r;
+}
+#endif
+
+
 static void op_close(struct libusb_device_handle *dev_handle)
 {
 	struct linux_device_handle_priv *hpriv = _device_handle_priv(dev_handle);
@@ -2758,8 +2806,10 @@ const struct usbi_os_backend usbi_backend = {
 	.get_active_config_descriptor = op_get_active_config_descriptor,
 	.get_config_descriptor = op_get_config_descriptor,
 	.get_config_descriptor_by_value = op_get_config_descriptor_by_value,
-
-	.open = op_open,
+	.open = op_open,		
+#ifdef ANDROID_APK
+	.open_fd = op_open_fd,
+#endif
 	.close = op_close,
 	.get_configuration = op_get_configuration,
 	.set_configuration = op_set_configuration,
